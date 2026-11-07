@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Caesar & Hash</title>
+
+    <style>
+        /* ========== الأساسيات ========== */
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #eef2f1;
+            color: #1f2937;
+            margin: 0;
+            padding: 0;
+        }
+
+        header {
+            padding: 28px 5%;
+            text-align: right;
+            background: #133a3d;
+            color: #ffffff;
+        }
+
+        h1 { font-size: 1.4rem; margin: 0; }
+        h2 { margin-top: 0; color: #0f6b64; }
+        label { font-weight: bold; }
+
+        .container {
+            width: min(1000px, 95%);
+            margin: 18px auto;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 18px;
+        }
+
+        .card {
+            background: #ffffff;
+            border: 1px solid #d5dcdc;
+            border-radius: 12px;
+            padding: 16px;
+        }
+
+        /* ========== الحقول والأزرار ========== */
+        textarea, input, select {
+            width: 100%;
+            margin: 8px 0 14px;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #cfd8d8;
+            background: #fafbfb;
+            color: #1f2937;
+            font-family: inherit;
+        }
+
+        textarea { min-height: 120px; resize: vertical; }
+
+        :focus-visible { outline: 2px solid #0f6b64; outline-offset: 2px; }
+
+        .btn-row { display: flex; gap: 10px; flex-wrap: wrap; }
+
+        button {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            background: #0f6b64;
+            color: white;
+            font-weight: bold;
+            font-family: inherit;
+        }
+
+        button:hover { background: #0b524d; }
+
+        .note { color: #6b7280; font-size: 0.95em; }
+
+        .error { color: #b91c1c; min-height: 1.2em; margin: 0 0 8px; }
+
+        /* ========== جدول تحليل Caesar ========== */
+        .table-wrap { overflow-x: auto; margin-top: 8px; }
+
+        table { width: 100%; border-collapse: collapse; }
+
+        th, td {
+            padding: 8px 10px;
+            border-bottom: 1px solid #d5dcdc;
+            text-align: right;
+        }
+
+        th { color: #0f6b64; font-weight: bold; }
+
+        td.plain {
+            direction: ltr;
+            text-align: left;
+            word-break: break-word;
+            font-family: Consolas, monospace;
+        }
+
+        tr.best { background: #dcfce7; }
+        tr.best td:first-child { border-right: 3px solid #16a34a; }
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1>موقع التشفير وفك التشفير (Caesar) والـ Hash</h1>
+    </header>
+
+    <main class="container">
+
+        <!-- 1) Caesar -->
+        <section class="card">
+            <h2>1) Caesar Cipher</h2>
+
+            <label for="caesarInput">النص:</label>
+            <textarea id="caesarInput" dir="auto" placeholder="اكتب النص هنا..."></textarea>
+
+            <label for="caesarShift">Shift (مفتاح الإزاحة):</label>
+            <input id="caesarShift" type="number" value="3" />
+
+            <div class="btn-row">
+                <button onclick="caesarEncrypt()">تشفير</button>
+                <button onclick="caesarDecrypt()">فك تشفير</button>
+            </div>
+
+            <label for="caesarOutput">الناتج:</label>
+            <textarea id="caesarOutput" dir="auto" readonly></textarea>
+        </section>
+
+        <!-- 2) تحليل Caesar بدون مفتاح -->
+        <section class="card">
+            <h2>2) تحليل Caesar (فك التشفير بدون مفتاح)</h2>
+
+            <label for="crackInput">النص المشفّر:</label>
+            <textarea id="crackInput" dir="auto" placeholder="الصق النص المشفّر هنا، مثال: Khoor Zruog"></textarea>
+
+            <div class="btn-row">
+                <button onclick="crackCaesar()">حلّل النص</button>
+            </div>
+
+            <p id="crackError" class="error"></p>
+
+            <div class="table-wrap" id="crackResult" hidden>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>المفتاح</th>
+                            <th>النص بعد الفك</th>
+                            <th>الدرجة</th>
+                        </tr>
+                    </thead>
+                    <tbody id="crackBody"></tbody>
+                </table>
+            </div>
+
+            <p class="note">
+                يجرّب الموقع كل المفاتيح من 1 إلى 25 ويرتّب النتائج حسب شبهها بالإنكليزية
+                (تحليل تكرار الحروف). السطر الأخضر هو الأرجح. النصوص القصيرة جداً قد تعطي ترتيباً غير دقيق،
+                فراجع باقي النتائج.
+            </p>
+        </section>
+
+        <!-- 3) Hash -->
+        <section class="card">
+            <h2>3) Hash (SHA-256 / SHA-512 / MD5)</h2>
+
+            <label for="hashInput">النص:</label>
+            <textarea id="hashInput" dir="auto" placeholder="اكتب النص المراد حساب هاشه..."></textarea>
+
+            <label for="hashAlgo">اختر النوع:</label>
+            <select id="hashAlgo">
+                <option value="SHA-256" selected>SHA-256</option>
+                <option value="SHA-512">SHA-512</option>
+                <option value="MD5">MD5</option>
+            </select>
+
+            <label for="hashFormat">صيغة الإخراج:</label>
+            <select id="hashFormat">
+                <option value="hex" selected>Hex</option>
+                <option value="base64">Base64</option>
+            </select>
+
+            <div class="btn-row">
+                <button onclick="makeHash()">احسب Hash</button>
+            </div>
+
+            <label for="hashOutput">Hash الناتج:</label>
+            <textarea id="hashOutput" dir="ltr" readonly></textarea>
+            <p id="hashWarn" class="error"></p>
+
+            <p class="note">
+                ملاحظة: الـ Hash لا ينفك (أحادي الاتجاه). تقدر فقط تقارن الناتج.
+            </p>
+        </section>
+
+    </main>
+
+    <script>
+        /* ========== Caesar Cipher ==========
+           يدعم حروف الإنكليزي والأرقام (0-9) ويحافظ على المسافات والرموز */
+
+        function caesarShiftChar(ch, shift, shiftDigits = true) {
+            const isUpper = ch >= 'A' && ch <= 'Z';
+            const isLower = ch >= 'a' && ch <= 'z';
+            const isDigit = ch >= '0' && ch <= '9';
+            if (isDigit && shiftDigits) {
+                // الأرقام: إزاحة ضمن 0-9
+                const d = ch.charCodeAt(0) - 48;
+                return String.fromCharCode((((d + shift) % 10) + 10) % 10 + 48);
+            }
+
+            if (!isUpper && !isLower) return ch;
+
+            const base = (isUpper ? 'A' : 'a').charCodeAt(0);
+            const code = ch.charCodeAt(0) - base;
+            // ((x % 26) + 26) % 26 يضمن نتيجة صحيحة حتى مع shift سالب أو كبير
+            const newCode = (((code + shift) % 26) + 26) % 26;
+            return String.fromCharCode(newCode + base);
+        }
+
+        function caesarTransform(text, shift, shiftDigits = true) {
+            let out = '';
+            for (const ch of text) out += caesarShiftChar(ch, shift, shiftDigits);
+            return out;
+        }
+
+        function getShift() {
+            return Math.trunc(Number(document.getElementById('caesarShift').value)) || 0;
+        }
+
+        function caesarEncrypt() {
+            const text = document.getElementById('caesarInput').value;
+            document.getElementById('caesarOutput').value = caesarTransform(text, getShift());
+        }
+
+        function caesarDecrypt() {
+            const text = document.getElementById('caesarInput').value;
+            // لفك التشفير نستخدم shift بالعكس
+            document.getElementById('caesarOutput').value = caesarTransform(text, -getShift());
+        }
+
+        /* ========== تحليل Caesar بدون مفتاح ==========
+           Brute Force على 25 مفتاح + تقييم كل نتيجة بتكرار الحروف الإنكليزية */
+
+        const ENGLISH_FREQ = {
+            e: 12.7, t: 9.1, a: 8.2, o: 7.5, i: 7.0, n: 6.7,
+            s: 6.3, h: 6.1, r: 6.0, d: 4.3, l: 4.0, u: 2.8
+        };
+
+        function scoreText(text) {
+            let total = 0;
+            for (const ch of text.toLowerCase()) total += ENGLISH_FREQ[ch] || 0;
+            return total;
+        }
+
+        function bruteForceCaesar(cipher) {
+            const results = [];
+            for (let key = 1; key <= 25; key++) {
+                const plain = caesarTransform(cipher, -key, false);
+                results.push({ key, plain, score: scoreText(plain) });
+            }
+            return results.sort((a, b) => b.score - a.score);
+        }
+
+        function crackCaesar() {
+            const cipher = document.getElementById('crackInput').value.trim();
+            const errorBox = document.getElementById('crackError');
+            const resultBox = document.getElementById('crackResult');
+            const body = document.getElementById('crackBody');
+
+            errorBox.textContent = '';
+            body.innerHTML = '';
+
+            if (!/[a-z]/i.test(cipher)) {
+                resultBox.hidden = true;
+                errorBox.textContent = 'اكتب نصاً يحتوي على حروف إنكليزية ثم اضغط "حلّل النص".';
+                return;
+            }
+
+            bruteForceCaesar(cipher).forEach((r, i) => {
+                const tr = document.createElement('tr');
+                if (i === 0) tr.className = 'best';
+
+                const tdKey = document.createElement('td');
+                tdKey.textContent = r.key;
+
+                const tdPlain = document.createElement('td');
+                tdPlain.className = 'plain';
+                tdPlain.textContent = r.plain;   // textContent لمنع حقن HTML
+
+                const tdScore = document.createElement('td');
+                tdScore.textContent = r.score.toFixed(1);
+
+                tr.append(tdKey, tdPlain, tdScore);
+                body.appendChild(tr);
+            });
+
+            resultBox.hidden = false;
+        }
+
+        /* ========== MD5 ==========
+           المتصفح ما يدعم MD5 داخل Web Crypto، فنحسبها يدوياً.
+           MD5 ضعيفة أمنياً (تنكسر بـ Collision)، تُستخدم للتعلم أو فحص الملفات فقط. */
+
+        function md5Bytes(bytes) {
+            // ثوابت الجيب: K[i] = floor(abs(sin(i + 1)) * 2^32)
+            const K = new Uint32Array(64);
+            for (let i = 0; i < 64; i++) K[i] = Math.floor(Math.abs(Math.sin(i + 1)) * 4294967296) >>> 0;
+
+            // مقدار دوران البتات لكل عملية من الـ 64
+            const S = [7,12,17,22,7,12,17,22,7,12,17,22,7,12,17,22,
+                       5,9,14,20,5,9,14,20,5,9,14,20,5,9,14,20,
+                       4,11,16,23,4,11,16,23,4,11,16,23,4,11,16,23,
+                       6,10,15,21,6,10,15,21,6,10,15,21,6,10,15,21];
+
+            // Padding: بت 1 ثم أصفار ثم طول النص الأصلي بالبتات (64 بت)
+            const len = bytes.length;
+            const padLen = (((len + 8) >> 6) + 1) << 6;
+            const buf = new Uint8Array(padLen);
+            buf.set(bytes);
+            buf[len] = 0x80;
+
+            const view = new DataView(buf.buffer);
+            view.setUint32(padLen - 8, (len << 3) >>> 0, true);
+            view.setUint32(padLen - 4, Math.floor(len / 0x20000000), true);
+
+            // الحالة الابتدائية (A, B, C, D)
+            let a0 = 0x67452301, b0 = 0xefcdab89, c0 = 0x98badcfe, d0 = 0x10325476;
+
+            // معالجة كل كتلة 512 بت
+            for (let off = 0; off < padLen; off += 64) {
+                const M = new Uint32Array(16);
+                for (let i = 0; i < 16; i++) M[i] = view.getUint32(off + i * 4, true);
+
+                let A = a0, B = b0, C = c0, D = d0;
+                for (let i = 0; i < 64; i++) {
+                    let F, g;
+                    if (i < 16)      { F = (B & C) | (~B & D); g = i; }
+                    else if (i < 32) { F = (D & B) | (~D & C); g = (5 * i + 1) % 16; }
+                    else if (i < 48) { F = B ^ C ^ D;          g = (3 * i + 5) % 16; }
+                    else             { F = C ^ (B | ~D);       g = (7 * i) % 16; }
+
+                    F = (F + A + K[i] + M[g]) >>> 0;
+                    A = D; D = C; C = B;
+                    B = (B + ((F << S[i]) | (F >>> (32 - S[i])))) >>> 0;
+                }
+                a0 = (a0 + A) >>> 0; b0 = (b0 + B) >>> 0;
+                c0 = (c0 + C) >>> 0; d0 = (d0 + D) >>> 0;
+            }
+
+            // الناتج: 16 بايت (128 بت)
+            const out = new Uint8Array(16);
+            const ov = new DataView(out.buffer);
+            ov.setUint32(0, a0, true); ov.setUint32(4, b0, true);
+            ov.setUint32(8, c0, true); ov.setUint32(12, d0, true);
+            return out;
+        }
+
+        /* ========== Hash (Web Crypto API) ==========
+           ملاحظة: crypto.subtle يشتغل فقط على HTTPS أو localhost */
+
+        async function makeHash() {
+            const text = document.getElementById('hashInput').value;
+            const algo = document.getElementById('hashAlgo').value;
+            const output = document.getElementById('hashOutput');
+            document.getElementById('hashWarn').textContent = algo === 'MD5'
+                ? 'MD5 ضعيفة أمنياً (تنكسر بـ Collision)، استخدمها للتعلم أو فحص الملفات فقط.'
+                : '';
+
+            if (algo !== 'MD5' && (!window.crypto || !crypto.subtle)) {
+                output.value = 'المتصفح أو الاتصال لا يدعم Web Crypto. افتح الموقع عبر HTTPS أو localhost.';
+                return;
+            }
+
+            const data = new TextEncoder().encode(text);
+            const digest = algo === 'MD5' ? md5Bytes(data) : await crypto.subtle.digest(algo, data);
+
+            const bytes = new Uint8Array(digest);
+            const format = document.getElementById('hashFormat').value;
+
+            if (format === 'base64') {
+                // تحويل bytes إلى Base64
+                output.value = btoa(String.fromCharCode(...bytes));
+            } else {
+                // تحويل bytes إلى Hex
+                output.value = [...bytes]
+                    .map(b => b.toString(16).padStart(2, '0'))
+                    .join('');
+            }
+        }
+    </script>
+</body>
+</html>
